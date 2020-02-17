@@ -467,9 +467,9 @@ String ESPboyGSM::moduleDebug() {
 uint8_t ESPboyGSM::call(char* phone_number) {
 	bool colp = callIsCOLPActive();
 	_buffer = _readSerial();
-	delay(100);
-	_command = "ATD" + (String)(phone_number);
-	this->print(_command + ";\r");
+	delay(300);
+	_command = "ATD" + (String)(phone_number)+";";
+	this->print(_command + "\r");
 	_buffer = _readSerial();
 	if (colp) {
 		if (_buffer.indexOf("BUSY") != -1){
@@ -594,8 +594,9 @@ bool ESPboyGSM::smsTextMode(bool textModeON) {
 
 // send SMS
 bool ESPboyGSM::smsSend(char* number, char* message) {
-    _command = "AT+CMGS=\"" + (String)number;
-	this->print( _command + F("\"\r"));
+    _command = "AT+CMGS=\"" + (String)number + "\"";
+	this->print( _command + F("\r"));
+	delay(300);
 	_buffer = _readSerial();
 	this->print(message);
 	this->print(F("\r"));
@@ -733,11 +734,11 @@ bool ESPboyGSM::smsDeleteAllRead() {
 	}
 }
 
-
+ 
 
 // delete all SMS
 bool ESPboyGSM::smsDeleteAll() {
-    _command = "AT+CMGD=1,4";
+    _command = "AT+CMGDA=\"DEL ALL\"";
 	this->print(_command + "\r");
 	_buffer = _readSerial();
 	if (_buffer.indexOf("OK") != -1) {
@@ -755,8 +756,8 @@ bool ESPboyGSM::smsDeleteAll() {
 ///////////////////
 
 bool ESPboyGSM::ussdSend(char* code) {
-    _command = "AT+CUSD=1,\"" + (String)code;
-    this->print(_command + "\"\r");
+    _command = "AT+CUSD=1,\"" + (String)code + "\"";
+    this->print(_command + "\r");
 	_buffer = _readSerial();
 	if (_buffer.indexOf("OK") != -1) {
 		return(true);

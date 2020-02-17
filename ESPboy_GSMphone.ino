@@ -27,9 +27,10 @@
 #define GSM_RX      D6
 #define GSM_TX      D8
 
-#define MAX_CONTACTS_STORE 100
-#define MAX_SMS_STORE 200
 #define MAX_CONSOLE_STRINGS 10
+#define MAX_TYPING_CHARS 50
+#define KEY_UNPRESSED_TIMEOUT 1000
+#define KEY_PRESSED_DELAY_TO_SEND 700
 #define CURSOR_BLINKING_PERIOD 500
 #define TFT_FADEOUT_DELAY 50000
 
@@ -40,24 +41,9 @@ TFT_eSPI tft = TFT_eSPI();
 ESPboyGSM GSM(GSM_RX, GSM_TX);       // RX, TX
 
 
-struct contact{
-  char nme[24];
-  char no[24];
-};
-
-struct sms{
-  char text[140];
-  uint32_t timestmp;
-  uint8_t type;
-};
-
-static contact GSMcont[MAX_CONTACTS_STORE];
-static sms GSMsms[MAX_SMS_STORE];
-static uint16_t GSMsmsCount = 0;
-
 constexpr uint8_t keybOnscr[3][21] PROGMEM = {
-"1234567890ABCDEFGHIJ",
-"KLMNOPQRSTUVWXYZ_+-=",
+"+1234567890ABCDEFGHI",
+"JKLMNOPQRSTUVWXYZ_-=",
 "?!@#$%&*()_[]\":;.,<E",
 };
 
@@ -127,9 +113,16 @@ void printFast(int x, int y, String str, int16_t color, uint16_t bg){
 
 
 
-int checkKey(){
+uint16_t checkKey(){
   keyState = ~mcp.readGPIOAB() & 255;
   return (keyState);
+}
+
+
+uint32_t waitKeyUnpressed(){
+  uint32_t timerStamp = millis();
+  while (checkKey() && (millis()-timerStamp) < KEY_UNPRESSED_TIMEOUT) delay(2);
+  return (millis() - timerStamp);
 }
 
 
@@ -142,6 +135,7 @@ void redrawOnscreen(uint8_t slX, uint8_t slY){
   drawCharFast(6*19+4, 128-24+2*8-2, 'E', TFT_WHITE, TFT_BLACK); 
   drawCharFast(6*18+4, 128-24+2*8-2, '<', TFT_WHITE, TFT_BLACK); 
 }
+
 
 void redrawSelected (uint8_t slX, uint8_t slY){
  static uint8_t prevX = 0, prevY = 0;
@@ -156,7 +150,8 @@ void redrawSelected (uint8_t slX, uint8_t slY){
 
 void drawTyping(){
     tft.fillRect(1, 128-5*8, 126, 8, TFT_BLACK);  
-    printFast(4, 128-5*8, typing+cursorType[cursorTypeFlag], TFT_WHITE, TFT_BLACK);
+    if(typing.length()<20) printFast(4, 128-5*8, typing+cursorType[cursorTypeFlag], TFT_WHITE, TFT_BLACK);
+    else printFast(4, 128-5*8, "<"+typing.substring(typing.length()-18)+cursorType[cursorTypeFlag], TFT_WHITE, TFT_BLACK);
 }
 
 
@@ -172,12 +167,26 @@ void drawBlinkingCursor(){
 void keybOnscreen(){
    if (checkKey()){
       lcdMaxBrightFlag++;
+
+      if(keyState&PAD_RGT){
+         GSM.callAnswer();
+         drawConsole("Answer | " + GSM.getCommand(),TFT_MAGENTA);
+         for (uint8_t i=0; i<=(GSM.getAnswer().length()/20); i++)
+            drawConsole(GSM.getAnswer().substring(i*20),TFT_YELLOW);
+         }
+      if(keyState&PAD_LFT){
+         GSM.callHangoff();
+         drawConsole("Hang off | " + GSM.getCommand(),TFT_MAGENTA);
+         for (uint8_t i=0; i<=(GSM.getAnswer().length()/20); i++)
+            drawConsole(GSM.getAnswer().substring(i*20),TFT_YELLOW);
+         }
+         
       if ((keyState&PAD_RIGHT) && selX < 19) { selX++; redrawSelected (selX, selY); }
       if ((keyState&PAD_LEFT) && selX > 0) { selX--; redrawSelected (selX, selY); }
       if ((keyState&PAD_DOWN) && selY < 2) { selY++; redrawSelected (selX, selY); }
       if ((keyState&PAD_UP) && selY > 0) { selY--; redrawSelected (selX, selY); }
       
-      if ((((keyState&PAD_ACT) && (selX == 19 && selY == 2)) || (keyState&PAD_ACT && keyState&PAD_ESC) || (keyState&PAD_RGT)) && typing.length()>0){//enter
+      if ((((keyState&PAD_ACT) && (selX == 19 && selY == 2)) || (keyState&PAD_ACT && keyState&PAD_ESC) || (keyState&PAD_RGT && keyState&PAD_LFT)) && typing.length()>0){//enter
         sendFlag = 1;
         } 
       else
@@ -191,10 +200,10 @@ void keybOnscreen(){
             drawTyping();
           } 
           else
-            if (keyState&PAD_ACT && typing.length() < 19) {
-            typing += (char)pgm_read_byte(&keybOnscr[selY][selX]); 
-            drawTyping();
-            while (checkKey()) delay(2); 
+            if (keyState&PAD_ACT && typing.length() < MAX_TYPING_CHARS) {
+              if (waitKeyUnpressed() > KEY_PRESSED_DELAY_TO_SEND)  sendFlag = 1;
+              else typing += (char)pgm_read_byte(&keybOnscr[selY][selX]); 
+              drawTyping();
             }
    }
   drawBlinkingCursor();
@@ -275,8 +284,14 @@ void setup() {
 
 
  //GSM init
+  drawConsole(F("use SIM800 AT commnd"), TFT_BLUE);
+  drawConsole(F("RGT-answer, LFT-hang"), TFT_BLUE);
+  drawConsole(F("<telno> for call"), TFT_BLUE);
+  drawConsole(F("<tel>,<text> for sms"), TFT_BLUE);
+  drawConsole(F("long press A to entr"), TFT_BLUE);
+  drawConsole(F(" "), TFT_YELLOW);
  drawConsole(F("init GSM..."), TFT_WHITE);
- if(GSM.init(9600)) drawConsole(F("OK"), TFT_GREEN);
+ if(GSM.init(9600)) drawConsole("OK", TFT_GREEN);
  else { drawConsole(F("FAULT"), TFT_RED); while(1) delay(100);}
  if(!GSM.isSimInserted()) drawConsole(F("No SIM"), TFT_RED);
  else drawConsole(F("searching network..."), TFT_WHITE);
@@ -296,24 +311,40 @@ void setup() {
  
  while (!GSM.isRegistered()) delay(100);
  drawConsole(GSM.operatorName(), TFT_GREEN);
+ drawConsole("RSSI:" + (String)GSM.signalQuality(), TFT_GREEN);
 }
 
 
 
 void loop(){
  static uint32_t availableDelay = 0;
+ 
   if (sendFlag) {
     lcdMaxBrightFlag++;
     sendFlag = 0;
     tone(SOUNDPIN,200, 100);
-    GSM.sendCommand(typing, true);
-    drawConsole(GSM.getCommand(), TFT_MAGENTA);
-//Serial.println(GSM.getAnswer());
+
+    if (typing[0] == '+' && typing[1] >='0' && typing[1] <='9' && typing[2] >='0' && typing[2] <='9'){
+      if (typing.indexOf(',') == -1) {
+        GSM.call((char*)typing.c_str());
+        typing = "";}
+      else  {
+        GSM.smsSend((char *)(typing.substring(0,typing.indexOf(','))).c_str(), (char *)(typing.substring(typing.indexOf(',')+1)).c_str());
+        delay(1000);
+        GSM.smsDeleteAll();
+        typing = "";
+      }
+    }
+    else GSM.sendCommand(typing, true);
+
+    for (uint8_t i=0; i<=(GSM.getCommand().length()/20); i++)
+       drawConsole(GSM.getCommand().substring(i*20),TFT_MAGENTA);
     for (uint8_t i=0; i<=(GSM.getAnswer().length()/20); i++)
-      drawConsole(GSM.getAnswer().substring(i*20),TFT_YELLOW);
-//    typing = "";
+       drawConsole(GSM.getAnswer().substring(i*20),TFT_YELLOW);
+   
     tft.fillRect(1, 128-5*8, 126, 8, TFT_BLACK); 
   }
+
 
   if (millis() > availableDelay+3000){
     availableDelay = millis();
@@ -321,13 +352,13 @@ void loop(){
   }
 
 
- if (GSM.available()) {
+  if (GSM.available()) {
       lcdMaxBrightFlag++;
       String getGSManswer = GSM._read();
-//Serial.println(getGSManswer);
       for (uint8_t i=0; i<=(getGSManswer.length()/20); i++)
         drawConsole(getGSManswer.substring(i*20),TFT_GREEN);
   }
+
 
   if (lcdMaxBrightFlag){
     lcdFadeTimer = millis();
@@ -336,11 +367,12 @@ void loop(){
     dac.setVoltage(lcdFadeBrightness, false);
   }
 
+
   if ((millis() > (lcdFadeTimer + TFT_FADEOUT_DELAY)) && (lcdFadeBrightness > 0)){
       lcdFadeBrightness -= 100;
       if (lcdFadeBrightness < 0) lcdFadeBrightness = 0;
       dac.setVoltage(lcdFadeBrightness, false);
-    }
+  }
     
   keybOnscreen();
   delay(75);
