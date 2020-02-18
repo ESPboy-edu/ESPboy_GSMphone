@@ -71,7 +71,14 @@ uint32_t GSMsmsTimer;
 String gsmResponse = ""; 
 
 
+
 void drawConsole(String bfrstr, uint16_t color){
+ for (uint8_t i=0; i<=(bfrstr.length()/21); i++)
+    drawConsoleNow(bfrstr.substring(i*20),color);
+}
+
+
+void drawConsoleNow(String bfrstr, uint16_t color){
   for (int i=0; i<MAX_CONSOLE_STRINGS; i++) {
     consolestrings[i] = consolestrings[i+1];
     consolestringscolor[i] = consolestringscolor[i+1];
@@ -171,15 +178,13 @@ void keybOnscreen(){
       if(keyState&PAD_RGT){
          GSM.callAnswer();
          drawConsole("Answer | " + GSM.getCommand(),TFT_MAGENTA);
-         for (uint8_t i=0; i<=(GSM.getAnswer().length()/20); i++)
-            drawConsole(GSM.getAnswer().substring(i*20),TFT_YELLOW);
-         }
+         drawConsole(GSM.getAnswer(),TFT_YELLOW);
+      }
       if(keyState&PAD_LFT){
          GSM.callHangoff();
          drawConsole("Hang off | " + GSM.getCommand(),TFT_MAGENTA);
-         for (uint8_t i=0; i<=(GSM.getAnswer().length()/20); i++)
-            drawConsole(GSM.getAnswer().substring(i*20),TFT_YELLOW);
-         }
+         drawConsole(GSM.getAnswer(),TFT_YELLOW);
+      }
          
       if ((keyState&PAD_RIGHT) && selX < 19) { selX++; redrawSelected (selX, selY); }
       if ((keyState&PAD_LEFT) && selX > 0) { selX--; redrawSelected (selX, selY); }
@@ -292,7 +297,11 @@ void setup() {
   drawConsole(F(" "), TFT_YELLOW);
  drawConsole(F("init GSM..."), TFT_WHITE);
  if(GSM.init(9600)) drawConsole("OK", TFT_GREEN);
- else { drawConsole(F("FAULT"), TFT_RED); while(1) delay(100);}
+ else { 
+   drawConsole(F("FAULT"), TFT_RED); 
+   myled.setRGB(4,0,0); 
+   while(1) delay(100);
+ }
  if(!GSM.isSimInserted()) drawConsole(F("No SIM"), TFT_RED);
  else drawConsole(F("searching network..."), TFT_WHITE);
  GSM.setErrorReport(2);
@@ -337,10 +346,8 @@ void loop(){
     }
     else GSM.sendCommand(typing, true);
 
-    for (uint8_t i=0; i<=(GSM.getCommand().length()/20); i++)
-       drawConsole(GSM.getCommand().substring(i*20),TFT_MAGENTA);
-    for (uint8_t i=0; i<=(GSM.getAnswer().length()/20); i++)
-       drawConsole(GSM.getAnswer().substring(i*20),TFT_YELLOW);
+  drawConsole(GSM.getCommand(),TFT_MAGENTA);
+  drawConsole(GSM.getAnswer(),TFT_YELLOW);
    
     tft.fillRect(1, 128-5*8, 126, 8, TFT_BLACK); 
   }
@@ -351,14 +358,20 @@ void loop(){
     if (!lcdFadeBrightness && !myled.getRGB()) myled.setRGB(0,0,2);
   }
 
-
   if (GSM.available()) {
       lcdMaxBrightFlag++;
+      myled.setRGB(0,10,0);
       String getGSManswer = GSM._read();
-      for (uint8_t i=0; i<=(getGSManswer.length()/20); i++)
-        drawConsole(getGSManswer.substring(i*20),TFT_GREEN);
+      
+      drawConsole(getGSManswer,TFT_GREEN);
+      if (getGSManswer.indexOf("+CLIP") != -1) drawConsole("CALL " + getGSManswer.substring(getGSManswer.indexOf("+CLIP")+8, getGSManswer.indexOf("\",")),TFT_WHITE);
+      else 
+        if (getGSManswer.indexOf("RING") != -1) drawConsole("INCOMING CALL",TFT_WHITE);
+      if (getGSManswer.indexOf("+CMTI") != -1){
+        drawConsole(GSM.smsRead(1, 1),TFT_WHITE);
+        GSM.smsDeleteAll();
+      } 
   }
-
 
   if (lcdMaxBrightFlag){
     lcdFadeTimer = millis();

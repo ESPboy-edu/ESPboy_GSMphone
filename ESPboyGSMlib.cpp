@@ -691,16 +691,17 @@ String ESPboyGSM::smsRead(uint8_t index, bool markRead) {
 		zaman = tarih_bol.substring(0, tarih_bol.indexOf("\"")); 
 		mesaj = tarih_bol.substring(tarih_bol.indexOf("\"")+1, tarih_bol.lastIndexOf("OK"));
 		mesaj.trim();
-		durum = "FOLDER:";
-		durum += klasor;
-		durum += "|STATUS:";
-		durum += okundumu;
-		durum += "|PHONENO:";
-		durum += telno;
-		durum += "|DATETIME:";
-		durum += zaman;
-		durum += "|MESSAGE:";
-		durum += mesaj;
+		durum = "SMS " + telno + " " + mesaj;
+//		durum = "FOLDER:";
+//		durum += klasor;
+//		durum += "|STATUS:";
+//		durum += okundumu;
+//		durum += "|PHONENO:";
+//		durum += telno;
+//		durum += "|DATETIME:";
+//		durum += zaman;
+//		durum += "|MESSAGE:";
+//		durum += mesaj;
 	}
 	return durum;
 }
@@ -741,6 +742,7 @@ bool ESPboyGSM::smsDeleteAll() {
     _command = "AT+CMGDA=\"DEL ALL\"";
 	this->print(_command + "\r");
 	_buffer = _readSerial();
+	delay(500);
 	if (_buffer.indexOf("OK") != -1) {
 		return(true);
 	}
