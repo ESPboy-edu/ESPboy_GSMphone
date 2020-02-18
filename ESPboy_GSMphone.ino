@@ -200,7 +200,8 @@ void keybOnscreen(){
             drawTyping();
         } 
         else
-          if ((keyState&PAD_ACT) && (selX == 16 && selY == 1) && typing.length() < 19){//SPACE
+          if ((keyState&PAD_ACT) && (selX == 17 && selY == 1) && typing.length() < 19){//SPACE
+            waitKeyUnpressed();
             typing += " "; 
             drawTyping();
           } 
@@ -335,23 +336,32 @@ void loop(){
 
     if (typing[0] == '+' && typing[1] >='0' && typing[1] <='9' && typing[2] >='0' && typing[2] <='9'){
       if (typing.indexOf(',') == -1) {
+        drawConsole("CALLING...",TFT_WHITE);
+        myled.setRGB(0,10,0);
         GSM.call((char*)typing.c_str());
-        typing = "";}
+        typing = "";
+        tft.fillRect(1, 128-5*8, 126, 8, TFT_BLACK); 
+      }
       else  {
+        drawConsole("SMS sending...",TFT_WHITE);
+        myled.setRGB(0,10,0);
         GSM.smsSend((char *)(typing.substring(0,typing.indexOf(','))).c_str(), (char *)(typing.substring(typing.indexOf(',')+1)).c_str());
         delay(1000);
         GSM.smsDeleteAll();
         typing = "";
+        tft.fillRect(1, 128-5*8, 126, 8, TFT_BLACK); 
       }
     }
-    else GSM.sendCommand(typing, true);
-
+    else {
+      GSM.sendCommand(typing, true);
+      if (GSM.getAnswer().indexOf("OK") !=-1){
+        typing = "";
+        tft.fillRect(1, 128-5*8, 126, 8, TFT_BLACK); 
+      }
+    }
   drawConsole(GSM.getCommand(),TFT_MAGENTA);
   drawConsole(GSM.getAnswer(),TFT_YELLOW);
-   
-    tft.fillRect(1, 128-5*8, 126, 8, TFT_BLACK); 
   }
-
 
   if (millis() > availableDelay+3000){
     availableDelay = millis();
