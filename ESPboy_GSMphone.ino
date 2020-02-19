@@ -29,8 +29,8 @@
 
 #define MAX_CONSOLE_STRINGS 10
 #define MAX_TYPING_CHARS 50
-#define KEY_UNPRESSED_TIMEOUT 1000
-#define KEY_PRESSED_DELAY_TO_SEND 700
+#define KEY_UNPRESSED_TIMEOUT 700
+#define KEY_PRESSED_DELAY_TO_SEND 500
 #define CURSOR_BLINKING_PERIOD 500
 #define TFT_FADEOUT_DELAY 50000
 
@@ -50,7 +50,8 @@ constexpr uint8_t keybOnscr[3][21] PROGMEM = {
 static String consolestrings[MAX_CONSOLE_STRINGS+1];
 static uint16_t consolestringscolor[MAX_CONSOLE_STRINGS+1];
 uint16_t line_buffer[46];
-uint8_t keyState = 0, selX = 0, selY = 0;
+uint8_t keyState = 0;
+int8_t selX = 0, selY = 0;
 
 String typing = "";
 uint32_t cursorBlinkMillis = 0;
@@ -174,22 +175,28 @@ void drawBlinkingCursor(){
 void keybOnscreen(){
    if (checkKey()){
       lcdMaxBrightFlag++;
+      tone(SOUNDPIN, 100, 10);
 
       if(keyState&PAD_RGT){
          GSM.callAnswer();
-         drawConsole("Answer | " + GSM.getCommand(),TFT_MAGENTA);
+         drawConsole("Answer | " + GSM.getCommand(),TFT_WHITE);
          drawConsole(GSM.getAnswer(),TFT_YELLOW);
       }
+      
       if(keyState&PAD_LFT){
          GSM.callHangoff();
-         drawConsole("Hang off | " + GSM.getCommand(),TFT_MAGENTA);
+         drawConsole("Hang off | " + GSM.getCommand(),TFT_WHITE);
          drawConsole(GSM.getAnswer(),TFT_YELLOW);
       }
          
-      if ((keyState&PAD_RIGHT) && selX < 19) { selX++; redrawSelected (selX, selY); }
-      if ((keyState&PAD_LEFT) && selX > 0) { selX--; redrawSelected (selX, selY); }
-      if ((keyState&PAD_DOWN) && selY < 2) { selY++; redrawSelected (selX, selY); }
-      if ((keyState&PAD_UP) && selY > 0) { selY--; redrawSelected (selX, selY); }
+      if ((keyState&PAD_RIGHT) && selX < 20)  selX++; 
+      if ((keyState&PAD_LEFT) && selX > -1)    selX--;
+      if ((keyState&PAD_DOWN) && selY < 3)    selY++;
+      if ((keyState&PAD_UP) && selY > -1)      selY--; 
+      if ((keyState&PAD_LEFT) && selX == -1)   selX=19;
+      if ((keyState&PAD_RIGHT) && selX == 20) selX=0;
+      if ((keyState&PAD_UP) && selY == -1)     selY=2; 
+      if ((keyState&PAD_DOWN) && selY == 3)   selY=0;
       
       if ((((keyState&PAD_ACT) && (selX == 19 && selY == 2)) || (keyState&PAD_ACT && keyState&PAD_ESC) || (keyState&PAD_RGT && keyState&PAD_LFT)) && typing.length()>0){//enter
         sendFlag = 1;
@@ -197,20 +204,19 @@ void keybOnscreen(){
       else
         if (((keyState&PAD_ACT) && (selX == 18 && selY == 2) || (keyState&PAD_ESC)) && typing.length()>0){//back space
             typing.remove(typing.length()-1); 
-            drawTyping();
         } 
         else
           if ((keyState&PAD_ACT) && (selX == 17 && selY == 1) && typing.length() < 19){//SPACE
             waitKeyUnpressed();
             typing += " "; 
-            drawTyping();
           } 
           else
             if (keyState&PAD_ACT && typing.length() < MAX_TYPING_CHARS) {
               if (waitKeyUnpressed() > KEY_PRESSED_DELAY_TO_SEND)  sendFlag = 1;
               else typing += (char)pgm_read_byte(&keybOnscr[selY][selX]); 
-              drawTyping();
             }
+   redrawSelected (selX, selY);
+   drawTyping();
    }
   drawBlinkingCursor();
 }
