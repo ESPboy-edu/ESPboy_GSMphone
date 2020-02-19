@@ -129,7 +129,7 @@ uint16_t checkKey(){
 
 uint32_t waitKeyUnpressed(){
   uint32_t timerStamp = millis();
-  while (checkKey() && (millis()-timerStamp) < KEY_UNPRESSED_TIMEOUT) delay(2);
+  while (checkKey() && (millis()-timerStamp) < KEY_UNPRESSED_TIMEOUT) delay(1);
   return (millis() - timerStamp);
 }
 
@@ -325,7 +325,7 @@ void setup() {
  GSM.setTimeFromOperator(true);
  GSM.saveParam ();
  
- while (!GSM.isRegistered()) delay(100);
+ while (!GSM.isRegistered()) delay(50);
  drawConsole(GSM.operatorName(), TFT_GREEN);
  drawConsole("RSSI:" + (String)GSM.signalQuality(), TFT_GREEN);
 }
@@ -339,43 +339,44 @@ void loop(){
     lcdMaxBrightFlag++;
     sendFlag = 0;
     tone(SOUNDPIN,200, 100);
+    myled.setRGB(0,10,0);
 
     if (typing[0] == '+' && typing[1] >='0' && typing[1] <='9' && typing[2] >='0' && typing[2] <='9'){
       if (typing.indexOf(',') == -1) {
         drawConsole("CALLING...",TFT_WHITE);
         myled.setRGB(0,10,0);
         GSM.call((char*)typing.c_str());
+        drawConsole(GSM.getCommand(),TFT_MAGENTA);
         typing = "";
-        tft.fillRect(1, 128-5*8, 126, 8, TFT_BLACK); 
       }
       else  {
         drawConsole("SMS sending...",TFT_WHITE);
         myled.setRGB(0,10,0);
         GSM.smsSend((char *)(typing.substring(0,typing.indexOf(','))).c_str(), (char *)(typing.substring(typing.indexOf(',')+1)).c_str());
-        delay(1000);
+        drawConsole(GSM.getCommand(),TFT_MAGENTA);
+        delay(500);
         GSM.smsDeleteAll();
         typing = "";
-        tft.fillRect(1, 128-5*8, 126, 8, TFT_BLACK); 
       }
     }
     else {
       GSM.sendCommand(typing, true);
+      drawConsole(GSM.getCommand(),TFT_MAGENTA);
+      drawConsole(GSM.getAnswer(),TFT_YELLOW);
       if (GSM.getAnswer().indexOf("OK") !=-1){
         typing = "";
-        tft.fillRect(1, 128-5*8, 126, 8, TFT_BLACK); 
       }
     }
-  drawConsole(GSM.getCommand(),TFT_MAGENTA);
-  drawConsole(GSM.getAnswer(),TFT_YELLOW);
   }
 
-  if (millis() > availableDelay+3000){
+  if (millis() > availableDelay+2000){
     availableDelay = millis();
     if (!lcdFadeBrightness && !myled.getRGB()) myled.setRGB(0,0,2);
   }
 
   if (GSM.available()) {
       lcdMaxBrightFlag++;
+      tone(SOUNDPIN,400, 100);
       myled.setRGB(0,10,0);
       String getGSManswer = GSM._read();
       
