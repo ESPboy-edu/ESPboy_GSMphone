@@ -13,6 +13,7 @@
 #define LEDPIN          D4
 #define SOUNDPIN        D3
 #define CSTFTPIN        8 //CS MCP23017 PIN to TFT
+#define VIBROPIN        9 //VIBRO MCP23017 PIN
 
 #define PAD_LEFT        0x01
 #define PAD_UP          0x02
@@ -266,6 +267,10 @@ void setup() {
   tft.setRotation(0);
   tft.fillScreen(TFT_BLACK);
 
+//VIBRO init
+  mcp.pinMode(VIBROPIN, OUTPUT);
+  mcp.digitalWrite(VIBROPIN, LOW);
+
 //draw ESPboylogo
   tft.drawXBitmap(30, 20, ESPboyLogo, 68, 64, TFT_YELLOW);
   tft.setTextSize(1);
@@ -378,12 +383,15 @@ void loop(){
 
   if (GSM.available()) {
       lcdMaxBrightFlag++;
+      mcp.digitalWrite(VIBROPIN, HIGH);
       tone(SOUNDPIN,400, 100);
       myled.setRGB(0,10,0);
       String getGSManswer = GSM._read();
       
       drawConsole(getGSManswer,TFT_GREEN);
-      if (getGSManswer.indexOf("+CLIP") != -1) drawConsole("CALL " + getGSManswer.substring(getGSManswer.indexOf("+CLIP")+8, getGSManswer.indexOf("\",")),TFT_WHITE);
+      if (getGSManswer.indexOf("+CLIP") != -1){ 
+        drawConsole("CALL " + getGSManswer.substring(getGSManswer.indexOf("+CLIP")+8, getGSManswer.indexOf("\",")),TFT_WHITE);
+      }
       else 
         if (getGSManswer.indexOf("RING") != -1) drawConsole("INCOMING CALL",TFT_WHITE);
       if (getGSManswer.indexOf("+CMTI") != -1){
@@ -409,4 +417,5 @@ void loop(){
   keybOnscreen();
   delay(75);
   if (myled.getRGB()) myled.setRGB(0,0,0);
+  if (mcp.digitalRead(VIBROPIN)) mcp.digitalWrite(VIBROPIN, LOW);
 }
