@@ -179,13 +179,15 @@ void keybOnscreen(){
 
       if(keyState&PAD_RGT){
          GSM.callAnswer();
-         drawConsole("Answer | " + GSM.getCommand(),TFT_WHITE);
+         drawConsole("Answer",TFT_WHITE);
+         drawConsole(GSM.getCommand(),TFT_MAGENTA);
          drawConsole(GSM.getAnswer(),TFT_YELLOW);
       }
       
       if(keyState&PAD_LFT){
          GSM.callHangoff();
-         drawConsole("Hang off | " + GSM.getCommand(),TFT_WHITE);
+         drawConsole("Hang off",TFT_WHITE);
+         drawConsole(GSM.getCommand(),TFT_MAGENTA);
          drawConsole(GSM.getAnswer(),TFT_YELLOW);
       }
          
