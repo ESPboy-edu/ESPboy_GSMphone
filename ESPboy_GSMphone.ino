@@ -309,6 +309,7 @@ void setup() {
   drawConsole(F("long press A to entr"), TFT_BLUE);
   drawConsole(F(" "), TFT_YELLOW);
  drawConsole(F("init GSM..."), TFT_WHITE);
+ myled.setRGB(20,20,0);
  if(GSM.init(9600)) drawConsole("OK", TFT_GREEN);
  else { 
    drawConsole(F("FAULT"), TFT_RED); 
@@ -332,8 +333,12 @@ void setup() {
  GSM.saveParam ();
  
  while (!GSM.isRegistered()) delay(50);
+ myled.setRGB(0,20,0);
+ tone(SOUNDPIN,400, 100);
+ mcp.digitalWrite(VIBROPIN, HIGH);
+ 
  drawConsole(GSM.operatorName(), TFT_GREEN);
- drawConsole("RSSI:" + (String)GSM.signalQuality(), TFT_GREEN);
+ drawConsole("RSSI:" + (String)GSM.signalQuality(), TFT_WHITE);
 }
 
 
@@ -383,7 +388,7 @@ void loop(){
 
   if (millis() > availableDelay+2000){
     availableDelay = millis();
-    if (!lcdFadeBrightness && !myled.getRGB()) myled.setRGB(0,0,2);
+    if (!lcdFadeBrightness && !myled.getRGB()) myled.setRGB(0,0,20);
   }
 
   if (GSM.available()) {
@@ -413,7 +418,7 @@ void loop(){
   }
     
   keybOnscreen();
-  delay(75);
+  delay(70);
   if (myled.getRGB()) myled.setRGB(0,0,0);
   if (mcp.digitalRead(VIBROPIN)) mcp.digitalWrite(VIBROPIN, LOW);
 }

@@ -314,7 +314,7 @@ bool ESPboyGSM::isRegistered() {
 bool ESPboyGSM::isSimInserted() {
     _command = "AT+CSMINS?";
 	this->print(_command + "\r");
-	delay(500);
+	delay(300);
 	_buffer = _readSerial();
 	if(_buffer.indexOf(",") != -1) {
 		String veri = _buffer.substring(_buffer.indexOf(",")+1, _buffer.indexOf(",")+2 );
