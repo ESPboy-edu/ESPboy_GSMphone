@@ -60,7 +60,6 @@ uint8_t cursorTypeFlag = 0;
 char cursorType[2]={220,'_'};
 uint8_t sendFlag = 0;
 
-uint8_t lcdMaxBrightFlag;
 int16_t lcdFadeBrightness;
 uint32_t lcdFadeTimer;
 
@@ -175,7 +174,7 @@ void drawBlinkingCursor(){
 
 void keybOnscreen(){
    if (checkKey()){
-      lcdMaxBrightFlag++;
+      lcdMaxBright();
       tone(SOUNDPIN, 100, 10);
 
       if(keyState&PAD_RGT){
@@ -338,12 +337,18 @@ void setup() {
 }
 
 
+void lcdMaxBright(){
+    lcdFadeTimer = millis();
+    lcdFadeBrightness = 4095;
+    dac.setVoltage(lcdFadeBrightness, false);
+}
+
 
 void loop(){
  static uint32_t availableDelay = 0;
  
   if (sendFlag) {
-    lcdMaxBrightFlag++;
+    lcdMaxBright();
     sendFlag = 0;
     tone(SOUNDPIN,200, 100);
     myled.setRGB(0,10,0);
@@ -382,7 +387,7 @@ void loop(){
   }
 
   if (GSM.available()) {
-      lcdMaxBrightFlag++;
+      lcdMaxBright();
       mcp.digitalWrite(VIBROPIN, HIGH);
       tone(SOUNDPIN,400, 100);
       myled.setRGB(0,10,0);
@@ -398,13 +403,6 @@ void loop(){
         drawConsole(GSM.smsRead(1, 1),TFT_WHITE);
         GSM.smsDeleteAll();
       } 
-  }
-
-  if (lcdMaxBrightFlag){
-    lcdFadeTimer = millis();
-    lcdMaxBrightFlag = 0;
-    lcdFadeBrightness = 4095;
-    dac.setVoltage(lcdFadeBrightness, false);
   }
 
 
