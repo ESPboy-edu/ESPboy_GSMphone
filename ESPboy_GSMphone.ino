@@ -6,6 +6,7 @@
 #include "lib/glcdfont.c"
 #include "lib/ESPboyLogo.h"
 #include "ESPboyGSMlib.h"
+#include "ESPboyOTA.h"
 
 #define LHSWAP(w)       (((w)>>8)|((w)<<8))
 #define MCP23017address 0 // actually it's 0x20 but in <Adafruit_MCP23017.h> lib there is (x|0x20) :)
@@ -40,6 +41,7 @@ Adafruit_MCP4725 dac;
 ESPboyLED myled;
 TFT_eSPI tft = TFT_eSPI();
 ESPboyGSM GSM(GSM_RX, GSM_TX);       // RX, TX
+ESPboyOTA* OTAobj = NULL;
 
 
 constexpr uint8_t keybOnscr[3][21] PROGMEM = {
@@ -71,6 +73,8 @@ uint32_t GSMsmsTimer;
 
 String gsmResponse = ""; 
 
+
+uint8_t getKeys() { return (~mcp.readGPIOAB() & 255); }
 
 
 void drawConsole(String bfrstr, uint16_t color){
@@ -291,6 +295,11 @@ void setup() {
  lcdFadeBrightness = 4095;
  lcdFadeTimer = millis();
  delay(200);
+
+
+//OTA check
+ if (getKeys()&PAD_ACT || getKeys()&PAD_ESC) OTAobj = new ESPboyOTA(&tft, &mcp);
+
  
 //draw interface
  tft.fillRect(0, 128-24, 128, 24, TFT_BLACK);
