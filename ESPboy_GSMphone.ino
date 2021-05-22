@@ -17,7 +17,7 @@
 
 ESPboyInit myESPboy;
 ESPboyTerminalGUI terminalGUIobj(&myESPboy.tft, &myESPboy.mcp);
-ESPboyGSM GSM(D6, D8);       // RX, TX
+ESPboyGSM GSM(D6, D4);       // RX, TX
 //ADC_MODE(ADC_VCC);
 
 
