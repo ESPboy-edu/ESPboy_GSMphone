@@ -5,7 +5,6 @@
 #include "lib/User_Setup.h"
 #define USER_SETUP_LOADED
 #define RING_TIMER_RESET 5000
-#define VIBRO_LED_TIMER 300
 
 #include "lib/ESPboyGSMlib.h"
 #include "lib/ESPboyGSMlib.cpp"
@@ -14,19 +13,16 @@
 #include "lib/ESPboyTerminalGUImod.h"
 #include "lib/ESPboyTerminalGUImod.cpp"
 
-#define VIBRO_PIN   9 //VIBRO MCP23017 PIN
 #define SOUND_PIN  D3
 
 ESPboyInit myESPboy;
 ESPboyTerminalGUI terminalGUIobj(&myESPboy.tft, &myESPboy.mcp);
 ESPboyGSM GSM(D6, D8);       // RX, TX
-ADC_MODE(ADC_VCC);
+//ADC_MODE(ADC_VCC);
 
 
 void setup() {
   Serial.begin(115200);    
-  pinMode(SOUND_PIN, OUTPUT);
-  myESPboy.mcp.pinMode(VIBRO_PIN, OUTPUT);
   myESPboy.begin("GSM phone");
   terminalGUIobj.toggleDisplayMode(1);
   
@@ -71,7 +67,6 @@ void setup() {
  while (!GSM.isRegistered()) delay(50);
  myESPboy.myLED.setRGB(0,5,0);
  myESPboy.playTone(400, 100);
- myESPboy.mcp.digitalWrite(VIBRO_PIN, HIGH);
  
  terminalGUIobj.printConsole(GSM.operatorName(), TFT_GREEN, 1, 0);
  terminalGUIobj.printConsole("RSSI:" + (String)GSM.signalQuality(), TFT_WHITE, 1, 0);
@@ -125,7 +120,6 @@ void loop(){
   if (GSM.available()) {
       myESPboy.playTone(400, 100);
       myESPboy.myLED.setRGB(0,5,0);
-      myESPboy.mcp.digitalWrite(VIBRO_PIN, HIGH);
       getGSManswer = GSM._read();
       
       terminalGUIobj.printConsole(getGSManswer,TFT_GREEN,1,0);
@@ -162,6 +156,5 @@ void loop(){
 
    if (myESPboy.myLED.getRGB()){
      myESPboy.myLED.setRGB(0,0,0);
-     myESPboy.mcp.digitalWrite(VIBRO_PIN, LOW);
    }
 }
