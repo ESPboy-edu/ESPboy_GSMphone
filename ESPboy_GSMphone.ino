@@ -116,8 +116,8 @@ void loop(){
     }
     else
       if(typing.length()){
+        terminalGUIobj.printConsole(typing ,TFT_MAGENTA,1,0);
         GSM.sendCommand(typing, true);
-        terminalGUIobj.printConsole(GSM.getCommand(),TFT_MAGENTA,1,0);
         terminalGUIobj.printConsole(GSM.getAnswer(),TFT_YELLOW,1,0);
         if (GSM.getAnswer().indexOf("OK") !=-1)
           typing = "";
