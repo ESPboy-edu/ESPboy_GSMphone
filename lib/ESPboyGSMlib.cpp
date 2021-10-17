@@ -493,6 +493,8 @@ uint8_t ESPboyGSM::call(char* phone_number) {
 			return 0;
 		}
 	}
+	
+	return 0;
 }
 
 
@@ -505,8 +507,9 @@ bool ESPboyGSM::callAnswer() {
 		return(true);
 	}
 	else {
-		false;
+		return false;
 	}
+ return false;
 }
 
 
@@ -519,8 +522,9 @@ bool ESPboyGSM::callHangoff() {
 		return(true);
 	} 
 	else {
-		false;
+		return false;
 	}
+ return false;
 }
 
 
@@ -547,8 +551,9 @@ bool ESPboyGSM::callSetCOLP(bool active) {
 		return(true);
 	}
 	else {
-		false;
+		return false;
 	}
+ return false;
 }
 
 
@@ -561,8 +566,9 @@ bool ESPboyGSM::callIsCOLPActive() {
 		return(true);
 	}
 	else {
-		false;
+		return false;
 	}
+	return false;
 }
 
 

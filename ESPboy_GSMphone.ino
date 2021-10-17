@@ -2,7 +2,6 @@
 ESPboy GSM phone module firmware. Using SIM800 chipset. 
 for www.ESPboy.com project
 by RomanS 16.05.2021
-Install to your Arduino IDE "ESPboyGSM_lib" library from the "lib" folder
 */
 
 #include "lib/User_Setup.h"
